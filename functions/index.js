@@ -1,19 +1,38 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+admin.initializeApp();
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "marcius.dev.estudos@gmail.com",
+    pass: "SUA_SENHA_DE_APP",
+  },
+});
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+exports.sendEmailOnNewContact = functions.firestore
+  .document("contacts/{contactId}")
+  .onCreate(async (snap, context) => {
+    const data = snap.data();
+
+    const mailOptions = {
+      from: data.email,
+      to: "marcius.dev.estudos@gmail.com",
+      subject: "Novo Contato do Formulário",
+      text: `Nome: ${data.fullName}
+Email: ${data.email}
+WhatsApp: ${data.whatsapp}
+Instagram: ${data.instagram}
+Faturamento: ${data.revenues}
+Dispositivos: ${data.devices}`,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log("E-mail enviado!");
+    } catch (error) {
+      console.error("Erro ao enviar e-mail:", error);
+    }
+  });
